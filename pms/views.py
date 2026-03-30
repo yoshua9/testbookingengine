@@ -179,47 +179,71 @@ class DashboardView(View):
         from datetime import date, time, datetime
         today = date.today()
 
-        # get bookings created today
-        today_min = datetime.combine(today, time.min)
-        today_max = datetime.combine(today, time.max)
-        today_range = (today_min, today_max)
+        try:
+            date_from = datetime.strptime(request.GET.get('date_from', ''), '%Y-%m-%d').date()
+        except ValueError:
+            date_from = today
+        try:
+            date_to = datetime.strptime(request.GET.get('date_to', ''), '%Y-%m-%d').date()
+        except ValueError:
+            date_to = today
+
+        if date_from > date_to:
+            date_from, date_to = date_to, date_from
+
+        range_min = datetime.combine(date_from, time.min)
+        range_max = datetime.combine(date_to, time.max)
+        created_range = (range_min, range_max)
+
         new_bookings = (Booking.objects
-                        .filter(created__range=today_range)
+                        .filter(created__range=created_range)
                         .values("id")
                         ).count()
 
         # get incoming guests
         incoming = (Booking.objects
-                    .filter(checkin=today)
+                    .filter(checkin__range=(date_from, date_to))
                     .exclude(state="DEL")
                     .values("id")
                     ).count()
 
         # get outcoming guests
         outcoming = (Booking.objects
-                     .filter(checkout=today)
+                     .filter(checkout__range=(date_from, date_to))
                      .exclude(state="DEL")
                      .values("id")
                      ).count()
 
         # get outcoming guests
         invoiced = (Booking.objects
-                    .filter(created__range=today_range)
+                    .filter(created__range=created_range)
                     .exclude(state="DEL")
                     .aggregate(Sum('total'))
                     )
 
-        # preparing context data
+        # a booking overlaps the range if: checkin <= date_to AND checkout > date_from
+        total_rooms = Room.objects.count()
+        confirmed_bookings = (Booking.objects
+                              .filter(
+                                  state=Booking.NEW,
+                                  checkin__lte=date_to,
+                                  checkout__gt=date_from,
+                              )
+                              .count())
+        occupancy_rate = round((confirmed_bookings / total_rooms) * 100, 2) if total_rooms > 0 else 0.0
+
         dashboard = {
             'new_bookings': new_bookings,
             'incoming_guests': incoming,
             'outcoming_guests': outcoming,
-            'invoiced': invoiced
-
+            'invoiced': invoiced,
+            'occupancy_rate': occupancy_rate,
         }
 
         context = {
-            'dashboard': dashboard
+            'dashboard': dashboard,
+            'date_from': date_from.strftime('%Y-%m-%d'),
+            'date_to': date_to.strftime('%Y-%m-%d'),
         }
         return render(request, "dashboard.html", context)
 

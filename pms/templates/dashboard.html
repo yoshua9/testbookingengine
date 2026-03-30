@@ -2,8 +2,19 @@
 
 {% block content %}
 <h1>Dashboard</h1>
+
+<form method="get" action="" class="mb-4">
+    <div class="input-group" style="max-width: 500px;">
+        <span class="input-group-text">Desde</span>
+        <input type="date" name="date_from" class="form-control" value="{{ date_from }}">
+        <span class="input-group-text">Hasta</span>
+        <input type="date" name="date_to" class="form-control" value="{{ date_to }}">
+        <button class="btn btn-outline-secondary" type="submit">Ver</button>
+    </div>
+</form>
+
 <div class="card">
-    <h5 class="card-header">Hoy</h5>
+    <h5 class="card-header">{{ date_from }} — {{ date_to }}</h5>
     <div class="d-flex justify-content-evenly pt-5 pb-5">
         <div class="card text-white p-3 card-customization" style="background-color: #1000ff;">
             <h5 class="small">Reservas hechas</h5>
@@ -20,7 +31,12 @@
 
         <div class="card text-white p-3 card-customization" style="background-color: #ff7f7f;">
             <h5 class="small">Total facturado</h5>
-            <h1 class="dashboard-value">€ {% if dashboard.invoiced.total__sum == None %}0.00{% endif %} {{dashboard.invoiced.total__sum|floatformat:2}}</h1>
+            <h1 class="dashboard-value">€ {{ dashboard.invoiced.total__sum|default:0|floatformat:2 }}</h1>
+        </div>
+
+        <div class="card text-white p-3 card-customization" style="background-color: #6f42c1;">
+            <h5 class="small">% Ocupación</h5>
+            <h1 class="dashboard-value">{{dashboard.occupancy_rate|floatformat:2}}%</h1>
         </div>
     </div>
 </div>
