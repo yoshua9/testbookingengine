@@ -236,6 +236,47 @@ class RoomDetailsView(View):
         return render(request, "room_detail.html", context)
 
 
+class EditBookingDatesView(View):
+    ROOM_NOT_AVAILABLE = "No hay disponibilidad para las fechas seleccionadas"
+
+    def get(self, request, pk):
+        booking = Booking.objects.get(id=pk)
+        form = EditDatesForm(initial={'checkin': booking.checkin, 'checkout': booking.checkout})
+        return render(request, "edit_booking_dates.html", {'form': form, 'booking': booking})
+
+    @method_decorator(ensure_csrf_cookie)
+    def post(self, request, pk):
+        booking = Booking.objects.get(id=pk)
+        form = EditDatesForm(request.POST)
+        if not form.is_valid():
+            return render(request, "edit_booking_dates.html", {'form': form, 'booking': booking})
+
+        checkin = form.cleaned_data['checkin']
+        checkout = form.cleaned_data['checkout']
+
+        if checkout <= checkin:
+            form.add_error('checkout', "La fecha de checkout debe ser posterior al checkin.")
+            return render(request, "edit_booking_dates.html", {'form': form, 'booking': booking})
+
+        # Check availability excluding current booking to avoid self-conflict
+        conflict = Booking.objects.filter(
+            room=booking.room,
+            state=Booking.NEW,
+            checkin__lt=checkout,
+            checkout__gt=checkin,
+        ).exclude(id=pk).exists()
+
+        if conflict:
+            form.add_error(None, self.ROOM_NOT_AVAILABLE)
+            return render(request, "edit_booking_dates.html", {'form': form, 'booking': booking})
+
+        booking.checkin = checkin
+        booking.checkout = checkout
+        booking.total = (checkout - checkin).days * booking.room.room_type.price
+        booking.save()
+        return redirect('/')
+
+
 class RoomsView(View):
     def get(self, request):
         # renders a list of rooms

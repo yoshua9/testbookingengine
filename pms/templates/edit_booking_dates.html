@@ -1,0 +1,31 @@
+{% extends "main.html"%}
+
+{% block content %}
+<h1>Editar fechas de reserva</h1>
+<p>Reserva: <strong>{{booking.code}}</strong> — {{booking.room.name}}</p>
+<form action="" method="post">
+    {% csrf_token %}
+    {% if form.non_field_errors %}
+    <div class="alert alert-danger">
+        {% for error in form.non_field_errors %}
+        {{error}}
+        {% endfor %}
+    </div>
+    {% endif %}
+    {% for field in form %}
+    <div class="row mb-2">
+        <div class="col-md-2">
+            {{field.label_tag}}
+        </div>
+        <div class="col">
+            {{field}}
+            {% if field.errors %}
+            <div class="text-danger">{{field.errors}}</div>
+            {% endif %}
+        </div>
+    </div>
+    {% endfor %}
+    <a class="btn btn-outline-primary" href="{% url 'home' %}">Volver</a>
+    <button class="btn btn-primary" type="submit">Guardar fechas</button>
+</form>
+{% endblock content%}

@@ -56,3 +56,14 @@ class BookingFormExcluded(ModelForm):
             'total': forms.HiddenInput(),
             'state': forms.HiddenInput(),
         }
+
+
+class EditDatesForm(forms.Form):
+    checkin = forms.DateField(
+        label="Check-in",
+        widget=forms.DateInput(attrs={'type': 'date'}),
+    )
+    checkout = forms.DateField(
+        label="Check-out",
+        widget=forms.DateInput(attrs={'type': 'date'}),
+    )
